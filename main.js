@@ -4,7 +4,7 @@ const fs = require('fs');
 
 // CONFIG
 const jsonFile = "./json/memories_history.json";
-const dir = "Downloads3";
+const dir = "Downloads";
 const progressBarLength = 25
 
 // INIT
