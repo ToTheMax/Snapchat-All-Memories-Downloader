@@ -1,4 +1,4 @@
-// IMPORTS
+// IMPORTS (no external packages needed)
 const https = require('https');
 const fs = require('fs');
 
