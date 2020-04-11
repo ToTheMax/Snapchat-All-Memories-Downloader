@@ -101,28 +101,26 @@ function getDownloadLink(url, body, filename, callback) {
 
 function updateProgress() {
 
+    process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+
+    var progress = counter / downloads.length;
+
+    // Print progressbar
+    var bar = Math.floor(progressBarLength * progress);
+    process.stdout.write("[")
+    process.stdout.write("=".repeat(bar) + "-".repeat(progressBarLength - bar))
+    process.stdout.write("] ")
+
+    // Print percentage
+    process.stdout.write((progress * 100).toFixed(2) + "% ")
+
+    // Print stats
+    process.stdout.write("| DONE: " + counter + "/" + downloads.length)
+    process.stdout.write(" | RETRIES: " + retries);
+
     if (counter == downloads.length)
         console.log("\nDone!");
-
-    else {
-        process.stdout.clearLine();
-        process.stdout.cursorTo(0);
-
-        var progress = counter / downloads.length;
-
-        // Print progressbar
-        var bar = Math.floor(progressBarLength * progress);
-        process.stdout.write("[")
-        process.stdout.write("=".repeat(bar) + "-".repeat(progressBarLength - bar))
-        process.stdout.write("] ")
-
-        // Print percentage
-        process.stdout.write((progress * 100).toFixed(2) + "% ")
-
-        // Print stats
-        process.stdout.write("| DONE: " + counter + "/" + downloads.length)
-        process.stdout.write(" | RETRIES: " + retries);
-    }
 }
 
 main();
