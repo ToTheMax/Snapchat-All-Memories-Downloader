@@ -1,4 +1,5 @@
 # Snapchat-All-Memories-Downloader
+This script will download each memory in bulk so you don't have to click the download links one by one.
 
 ## Requirements
 1. Node.js version 10 or higher (https://nodejs.org/)  
