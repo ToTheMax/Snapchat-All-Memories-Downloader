@@ -15,4 +15,6 @@ This script will download each memory in bulk so you don't have to click the dow
 node main.js 
     -c number of concurrent connections
     -f filepath to memories_history.json
+    
+    Example: node main.js -c 100 -f ./json/memories_history.json
 <pre>
