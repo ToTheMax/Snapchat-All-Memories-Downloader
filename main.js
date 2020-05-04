@@ -1,68 +1,75 @@
 // IMPORTS (no external packages needed)
 const https = require('https');
 const fs = require('fs');
+const Queue = require("./concurrency.js")
+const Progress = require("./progress.js")
 
 // CONFIG
-const jsonFile = "./json/memories_history.json";
 const dir = "Downloads";
-const progressBarLength = 25
+const progressBarLength = 20;
+
+concurrentIndex = process.argv.indexOf('-c');
+const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentIndex + 1] : 20;
+
+filenameIndex = process.argv.indexOf('-f');
+const jsonFile = (filenameIndex > -1) ? process.argv[filenameIndex + 1] : "./json/memories_history.json";
 
 // INIT
-var counter = 0;
-var retries = 0;
+var downloads = require(jsonFile)["Saved Media"];
+var queue = new Queue(maxConcurrentDownloads);
+var progress = new Progress(downloads.length, progressBarLength);
 
-downloads = require(jsonFile)["Saved Media"];
-if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir);
-}
 
 function main() {
 
+    // Create download directory
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
+    // Start downloads
     for (var i = 0; i < downloads.length; i++) {
 
-        var link = downloads[i]["Download Link"];
-        var [url, body] = link.split('?', 2)
+        var [url, body] = downloads[i]["Download Link"].split('?', 2);
+        var filename = getFileName(downloads[i])
 
-        var [date, time, tz] = downloads[i]["Date"].split(' ', 3);
-        time = time.split(':').join('.'); // Windows doesn't like ":" in filename
+        // First get CDN download link
+        queue.enqueue(() => getDownloadLink(url, body, filename))
+            .then((result) => {
+                progress.cdnLinkSucceeded(true);
 
-        var filename = date + "_" + time;
+                var downloadLink = result[0];
+                var filename = result[1];
 
-        if (downloads[i]["Media Type"] == "PHOTO")
-            filename += ".jpg";
-        else if (downloads[i]["Media Type"] == "VIDEO")
-            filename += ".mp4";
-
-        downloadMemory(url, body, filename);
+                // Download the file
+                queue.enqueue(() => downloadMemory(downloadLink, filename))
+                    .then((success) => {
+                        progress.downloadSucceeded(true);
+                    })
+                    .catch((err) => {
+                        progress.downloadSucceeded(false);
+                    })
+            })
+            .catch((err) => {
+                progress.cdnLinkSucceeded(false);
+            })
     }
 }
 
-function downloadMemory(url, body, filename) {
+function getFileName(download) {
 
-    // First we need to get CDN download url
-    getDownloadLink(url, body, filename, function (downloadUrl) {
+    var [date, time, tz] = download["Date"].split(' ', 3);
+    time = time.split(':').join('.'); // Windows doesn't like ":" in filename
 
-        // Create the file and write to it
-        var file = fs.createWriteStream(dir + "/" + filename);
+    var filename = date + "_" + time;
 
-        const request = https.get(downloadUrl, function (res) {
-            res.pipe(file);
-            res.on("error", function () {
-                downloadMemory(url, body, filename)
-                retries++;
-            })
-            res.on("end", function () {
-                file.close();
-                counter++;
-                updateProgress();
-            });
-        });
-    });
+    if (download["Media Type"] == "PHOTO")
+        filename += ".jpg";
+    else if (download["Media Type"] == "VIDEO")
+        filename += ".mp4";
+
+    return filename
 }
 
-function getDownloadLink(url, body, filename, callback) {
-
+const getDownloadLink = (url, body, filename) => new Promise(resolve => {
     var parsedUrl = new URL(url);
 
     const options = {
@@ -77,50 +84,53 @@ function getDownloadLink(url, body, filename, callback) {
     var req = https.request(options, (res) => {
 
         data = "";
-
         res.on("data", (chunk) => {
             data += chunk;
         });
         res.on("error", function () {
-            downloadMemory(url, body, filename)
-            retries++;
+            reject("request error");
         })
         res.on("end", function () {
             if (res.statusCode == 200) {
-                callback(data);
+                resolve([data, filename]);
             }
             else {
-                downloadMemory(url, body, filename)
-                retries++;
+                reject("status error");
             }
         });
     });
     req.write(body);
     req.end();
-}
+});
 
-function updateProgress() {
 
-    process.stdout.clearLine();
-    process.stdout.cursorTo(0);
+const downloadMemory = (downloadUrl, filename) => new Promise(resolve => {
 
-    var progress = counter / downloads.length;
+    // Create the file and write to it
+    var file = fs.createWriteStream(dir + "/" + filename);
 
-    // Print progressbar
-    var bar = Math.floor(progressBarLength * progress);
-    process.stdout.write("[")
-    process.stdout.write("=".repeat(bar) + "-".repeat(progressBarLength - bar))
-    process.stdout.write("] ")
-
-    // Print percentage
-    process.stdout.write((progress * 100).toFixed(2) + "% ")
-
-    // Print stats
-    process.stdout.write("| DONE: " + counter + "/" + downloads.length)
-    process.stdout.write(" | RETRIES: " + retries);
-
-    if (counter == downloads.length)
-        console.log("\nDone!");
-}
+    const request = https.get(downloadUrl, function (res) {
+        res.pipe(file);
+        res.on("error", function () {
+            reject("request error");
+        })
+        res.on("end", function () {
+            file.close();
+            if (res.statusCode == 200) {
+                resolve(true);
+            }
+            else {
+                reject("status error");
+            }
+        });
+    });
+});
 
 main();
+
+
+// Don't look at this
+process.on('uncaughtException', function (err) {
+    if (err.code == "ECONNRESET")
+        progress.downloadSucceeded(false);
+});
