@@ -10,7 +10,7 @@ This script will download each memory in bulk so you don't have to click the dow
 3. Place `main.js` in the folder OR change the config variables
 4. Run the script: `node main.js`
 
-# Optional Arguments
+## Optional Arguments
 <pre>
 node main.js 
     -c number of concurrent connections
