@@ -1,10 +1,8 @@
 module.exports = class Queue {
 
-    queue = [];
-    pendingPromises = 0;
-    maxPendingPromises;
-
     constructor(maxPendingPromises) {
+        this.queue = [];
+        this.pendingPromises = 0;
         this.maxPendingPromises = maxPendingPromises;
     }
 

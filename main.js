@@ -14,33 +14,29 @@ const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentI
 filenameIndex = process.argv.indexOf('-f');
 const jsonFile = (filenameIndex > -1) ? process.argv[filenameIndex + 1] : "./json/memories_history.json";
 
-// INIT
-var downloads = require(jsonFile)["Saved Media"];
-var queue = new Queue(maxConcurrentDownloads);
-var progress = new Progress(downloads.length, progressBarLength);
-
 
 function main() {
+    // INIT
+    var downloads = require(jsonFile)["Saved Media"];
+    var queue = new Queue(maxConcurrentDownloads);
+    var progress = new Progress(downloads.length, progressBarLength);
 
     // Create download directory
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
     // Start downloads
-    for (var i = 0; i < downloads.length; i++) {
+    for (let i = 0; i < downloads.length; i++) {
 
-        var [url, body] = downloads[i]["Download Link"].split('?', 2);
-        var filename = getFileName(downloads[i])
+        let [url, body] = downloads[i]["Download Link"].split('?', 2);
+        let fileName = getFileName(downloads[i]);
 
         // First get CDN download link
-        queue.enqueue(() => getDownloadLink(url, body, filename))
+        queue.enqueue(() => getDownloadLink(url, body, fileName))
             .then((result) => {
                 progress.cdnLinkSucceeded(true);
 
-                var downloadLink = result[0];
-                var filename = result[1];
-
                 // Download the file
-                queue.enqueue(() => downloadMemory(downloadLink, filename))
+                queue.enqueue(() => downloadMemory(result[0], result[1]))
                     .then((success) => {
                         progress.downloadSucceeded(true);
                     })

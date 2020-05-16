@@ -1,18 +1,15 @@
 module.exports = class Progress {
 
-    total;
-    progressBarLength;
-    cdnLinks = { success: 0, fails: 0 }
-    downloads = { success: 0, fails: 0 }
-
     constructor(total, progressBarLength) {
         this.total = total;
         this.progressBarLength = progressBarLength;
+        this.cdnLinks = { success: 0, fails: 0 }
+        this.downloads = { success: 0, fails: 0 }
         this.printProgress(true);
     }
 
     cdnLinkSucceeded(didSucceed) {
-        didSucceed ? this.cdnLinks.success++ : this.cdnLink.fails++;
+        didSucceed ? this.cdnLinks.success++ : this.cdnLinks.fails++;
         this.printProgress();
     }
 
