@@ -14,12 +14,12 @@ const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentI
 filenameIndex = process.argv.indexOf('-f');
 const jsonFile = (filenameIndex > -1) ? process.argv[filenameIndex + 1] : "./json/memories_history.json";
 
+// INIT
+var downloads = require(jsonFile)["Saved Media"];
+var queue = new Queue(maxConcurrentDownloads);
+var progress = new Progress(downloads.length, progressBarLength);
 
 function main() {
-    // INIT
-    var downloads = require(jsonFile)["Saved Media"];
-    var queue = new Queue(maxConcurrentDownloads);
-    var progress = new Progress(downloads.length, progressBarLength);
 
     // Create download directory
     if (!fs.existsSync(dir)) fs.mkdirSync(dir);
