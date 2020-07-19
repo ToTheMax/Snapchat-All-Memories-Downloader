@@ -7,7 +7,7 @@ This script will download each memory in bulk so you don't have to click the dow
 ## How to run
 1. Download your Snapchat data: https://support.snapchat.com/en-US/a/download-my-data
 2. Extract the zip-file
-3. Place all the scripts in this folder OR set the `-c` flag pointing to the `memories_history.json` file
+3. Place all the scripts in this folder OR set the `-f` flag pointing to the `memories_history.json` file
 4. Run the script: `node main.js`
 
 ## Optional Arguments
