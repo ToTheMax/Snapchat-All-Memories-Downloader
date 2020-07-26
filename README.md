@@ -1,3 +1,7 @@
+
+[![Node](http://img.shields.io/badge/Node-%E2%89%A5%2010-brightgreen.svg)](https://nodejs.org/en/download/releases/)
+[![Donate](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://www.paypal.me/mraams)
+
 # Snapchat-All-Memories-Downloader
 This script will download each memory in bulk so you don't have to click the download links one by one.
 
