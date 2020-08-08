@@ -9,7 +9,7 @@ const dir = "Downloads";
 const progressBarLength = 20;
 
 concurrentIndex = process.argv.indexOf('-c');
-const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentIndex + 1] : 20;
+const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentIndex + 1] : 30;
 
 filenameIndex = process.argv.indexOf('-f');
 const jsonFile = (filenameIndex > -1) ? process.argv[filenameIndex + 1] : "./json/memories_history.json";
@@ -101,6 +101,21 @@ const getDownloadLink = (url, body, filename) => new Promise(resolve => {
 
 
 const downloadMemory = (downloadUrl, filename) => new Promise(resolve => {
+
+    // Check if there already exists a file with the same name/timestamp
+    if (fs.existsSync(dir + "/" + filename)) {
+        duplicates = 1;
+        while (true) {
+            var extensionPos = filename.lastIndexOf('.');
+            var newFilename = filename.substring(0, extensionPos) + " (" + duplicates + ")" + filename.substring(extensionPos, filename.length);
+            if (fs.existsSync(dir + "/" + newFilename))
+                duplicates++;
+            else {
+                filename = newFilename;
+                break;
+            }
+        }
+    }
 
     // Create the file and write to it
     var file = fs.createWriteStream(dir + "/" + filename);
