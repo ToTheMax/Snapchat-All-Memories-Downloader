@@ -3,6 +3,8 @@ const https = require('https');
 const fs = require('fs');
 const Queue = require("./concurrency.js")
 const Progress = require("./progress.js")
+const moment = require('moment');
+const utimes = require('utimes').utimes;
 
 // CONFIG
 const dir = "Downloads";
@@ -28,15 +30,16 @@ function main() {
     for (let i = 0; i < downloads.length; i++) {
 
         let [url, body] = downloads[i]["Download Link"].split('?', 2);
-        let fileName = getFileName(downloads[i]);
+        const fileTime = moment.utc(downloads[i]["Date"], "YYYY-MM-DD HH:mm:ss Z")
+        let fileName = getFileName(downloads[i], fileTime);
 
         // First get CDN download link
-        queue.enqueue(() => getDownloadLink(url, body, fileName))
+        queue.enqueue(() => getDownloadLink(url, body, fileName, fileTime))
             .then((result) => {
                 progress.cdnLinkSucceeded(true);
 
                 // Download the file
-                queue.enqueue(() => downloadMemory(result[0], result[1]))
+                queue.enqueue(() => downloadMemory(result[0], result[1], result[2]))
                     .then((success) => {
                         progress.downloadSucceeded(true);
                     })
@@ -50,12 +53,9 @@ function main() {
     }
 }
 
-function getFileName(download) {
-
-    var [date, time, tz] = download["Date"].split(' ', 3);
-    time = time.split(':').join('.'); // Windows doesn't like ":" in filename
-
-    var filename = date + "_" + time;
+function getFileName(download, fileTime) {
+    // Using . instead of : for time separator because Windows doesn't like it.
+    var filename = fileTime.format("YYYY-MM-DD_HH.mm.ss")
 
     if (download["Media Type"] == "PHOTO")
         filename += ".jpg";
@@ -65,7 +65,7 @@ function getFileName(download) {
     return filename
 }
 
-const getDownloadLink = (url, body, filename) => new Promise(resolve => {
+const getDownloadLink = (url, body, filename, fileTime) => new Promise(resolve => {
     var parsedUrl = new URL(url);
 
     const options = {
@@ -88,7 +88,7 @@ const getDownloadLink = (url, body, filename) => new Promise(resolve => {
         })
         res.on("end", function () {
             if (res.statusCode == 200) {
-                resolve([data, filename]);
+                resolve([data, filename, fileTime]);
             }
             else {
                 reject("status error");
@@ -100,7 +100,7 @@ const getDownloadLink = (url, body, filename) => new Promise(resolve => {
 });
 
 
-const downloadMemory = (downloadUrl, filename) => new Promise(resolve => {
+const downloadMemory = (downloadUrl, filename, fileTime) => new Promise(resolve => {
 
     // Check if there already exists a file with the same name/timestamp
     if (fs.existsSync(dir + "/" + filename)) {
@@ -120,7 +120,7 @@ const downloadMemory = (downloadUrl, filename) => new Promise(resolve => {
     // Create the file and write to it
     var file = fs.createWriteStream(dir + "/" + filename);
 
-    const request = https.get(downloadUrl, function (res) {
+    https.get(downloadUrl, function (res) {
         res.pipe(file);
         res.on("error", function () {
             reject("request error");
@@ -128,7 +128,15 @@ const downloadMemory = (downloadUrl, filename) => new Promise(resolve => {
         res.on("end", function () {
             file.close();
             if (res.statusCode == 200) {
-                resolve(true);
+                // Update the file creation date
+                utimes(file.path, {
+                    btime: fileTime.valueOf(), // birthtime (Windows & Mac)
+                    mtime: fileTime.valueOf() // modified time (Windows, Mac, Linux)
+                }).then(() => {
+                    resolve(true)
+                }).catch(err => {
+                    reject("failed to set file creation date:", err)
+                })
             }
             else {
                 reject("status error");

@@ -1,0 +1,14 @@
+{
+  "name": "snapchat-all-memories-downloader",
+  "description": "Script to download all your Snapchat memories",
+  "authors": "ToTheMax <https://github.com/ToTheMax>",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "moment": "2.29.0",
+    "utimes": "4.0.2"
+  }
+}
