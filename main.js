@@ -54,8 +54,7 @@ function main() {
 }
 
 function getFileName(download, fileTime) {
-    // Using . instead of : for time separator because Windows doesn't like it.
-    var filename = fileTime.format("YYYY-MM-DD_HH.mm.ss")
+    var filename = fileTime.format("YYYY-MM-DD_HH-mm-ss")
 
     if (download["Media Type"] == "PHOTO")
         filename += ".jpg";
