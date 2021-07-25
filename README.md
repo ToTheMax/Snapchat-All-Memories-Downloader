@@ -34,3 +34,4 @@ Options:
 1. Make sure you get a fresh zip-file before running the script, links will expire over time
 2. `Syntax Compilation Error` -> please have a look at [this](https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/issues/4#issuecomment-664035581) issue
 3. Still problems? please make a new [issue](https://github.com/ToTheiMax/Snapchat-All-Memories-Downloader/issues)
+4. Feel free to add me on discord for other questions: ToTheMax#2203
