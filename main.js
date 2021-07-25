@@ -1,30 +1,39 @@
-// IMPORTS (no external packages needed)
-const https = require('https');
-const fs = require('fs');
-const Queue = require("./concurrency.js")
-const Progress = require("./progress.js")
-const moment = require('moment');
-const utimes = require('utimes').utimes;
+// IMPORTS
+const https = require("https");
+const fs = require("fs");
+const Queue = require("./concurrency.js");
+const Progress = require("./progress.js");
+const moment = require("moment");
+const utimes = require("utimes").utimes;
+const { Command } = require("commander");
+
+// PARSE ARGUMENTS
+const program = new Command();
+program
+    .description("A script to download Snapchat Memories\n\nExample:\n  node main.js -c 50 -f ./json/memories_history.json -o Downloads")
+    .option("-c <number>", "Number of concurrent downloads", 30)
+    .option("-f <path>", "Filepath to memories_history.json", "./json/memories_history.json")
+    .option("-o <directory>", "Download directory", "Downloads");
+program.parse();
+const options = program.opts();
 
 // CONFIG
-const dir = "Downloads";
+const outputDir = options.o;
+const maxConcurrentDownloads = options.c;
+const jsonFile = (!options.f.startsWith("/") && !options.f.startsWith("./")) ? "./" + options.f : options.f;
 const progressBarLength = 20;
 
-concurrentIndex = process.argv.indexOf('-c');
-const maxConcurrentDownloads = (concurrentIndex > -1) ? process.argv[concurrentIndex + 1] : 30;
-
-filenameIndex = process.argv.indexOf('-f');
-const jsonFile = (filenameIndex > -1) ? process.argv[filenameIndex + 1] : "./json/memories_history.json";
-
 // INIT
-var downloads = require(jsonFile)["Saved Media"];
+if (!jsonFile.startsWith("/") && !jsonFile.startsWith("./"))
+    jsonFile = "./" + jsonFile
+var downloads = require("./" + jsonFile)["Saved Media"];
 var queue = new Queue(maxConcurrentDownloads);
 var progress = new Progress(downloads.length, progressBarLength);
 
 function main() {
 
     // Create download directory
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
     // Start downloads
     for (let i = 0; i < downloads.length; i++) {
@@ -72,7 +81,7 @@ const getDownloadLink = (url, body, filename, fileTime) => new Promise(resolve =
         path: parsedUrl.pathname,
         method: "POST",
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            "Content-Type": "application/x-www-form-urlencoded",
         },
     };
 
@@ -102,12 +111,12 @@ const getDownloadLink = (url, body, filename, fileTime) => new Promise(resolve =
 const downloadMemory = (downloadUrl, filename, fileTime) => new Promise(resolve => {
 
     // Check if there already exists a file with the same name/timestamp
-    if (fs.existsSync(dir + "/" + filename)) {
+    if (fs.existsSync(outputDir + "/" + filename)) {
         duplicates = 1;
         while (true) {
             var extensionPos = filename.lastIndexOf('.');
             var newFilename = filename.substring(0, extensionPos) + " (" + duplicates + ")" + filename.substring(extensionPos, filename.length);
-            if (fs.existsSync(dir + "/" + newFilename))
+            if (fs.existsSync(outputDir + "/" + newFilename))
                 duplicates++;
             else {
                 filename = newFilename;
@@ -117,7 +126,7 @@ const downloadMemory = (downloadUrl, filename, fileTime) => new Promise(resolve 
     }
 
     // Create the file and write to it
-    var file = fs.createWriteStream(dir + "/" + filename);
+    var file = fs.createWriteStream(outputDir + "/" + filename);
 
     https.get(downloadUrl, function (res) {
         res.pipe(file);
@@ -147,8 +156,8 @@ const downloadMemory = (downloadUrl, filename, fileTime) => new Promise(resolve 
 main();
 
 
-// Don't look at this
-process.on('uncaughtException', function (err) {
+// Don"t look at this
+process.on("uncaughtException", function (err) {
     if (err.code == "ECONNRESET")
         progress.downloadSucceeded(false);
 });

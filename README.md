@@ -13,11 +13,18 @@ This script will download each memory in bulk so you don't have to click the dow
 
 ## Optional Arguments
 ```
-node main.js 
-    -c number of concurrent connections
-    -f filepath to memories_history.json
-    
-    Example: node main.js -c 50 -f ./json/memories_history.json
+Usage: main [options]
+
+A script to download Snapchat Memories
+
+Example:
+  node main.js -c 50 -f ./json/memories_history.json -o Downloads
+
+Options:
+  -c <number>     Number of concurrent downloads (default: 30)
+  -f <path>       Filepath to memories_history.json (default: "./json/memories_history.json")
+  -o <directory>  Download directory (default: "Downloads")
+  -h, --help      display help for command
 ```
 
 ## Example
