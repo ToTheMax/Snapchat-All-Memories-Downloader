@@ -83,7 +83,6 @@ function getFileName(download, fileTime) {
 
 const getDownloadLink = (url, body, filename, fileTime) => new Promise(resolve => {
     var parsedUrl = new URL(url);
-
     const options = {
         hostname: parsedUrl.hostname,
         path: parsedUrl.pathname,
@@ -168,4 +167,8 @@ main();
 process.on("uncaughtException", function (err) {
     if (err.code == "ECONNRESET")
         progress.downloadSucceeded(false);
+    else{
+        console.error(err, 'Uncaught Exception thrown');
+        process.exit(1);
+    }
 });
