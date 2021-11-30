@@ -6,6 +6,7 @@ const Progress = require("./progress.js");
 const moment = require("moment");
 const utimes = require("utimes").utimes;
 const { Command } = require("commander");
+const { exit } = require("process");
 
 // PARSE ARGUMENTS
 const program = new Command();
@@ -24,11 +25,10 @@ const jsonFile = (!options.f.startsWith("/") && !options.f.startsWith("./")) ? "
 const progressBarLength = 20;
 
 // INIT
-if (!jsonFile.startsWith("/") && !jsonFile.startsWith("./"))
-    jsonFile = "./" + jsonFile
-var downloads = require("./" + jsonFile)["Saved Media"];
+var downloads = require(jsonFile)["Saved Media"];
 var queue = new Queue(maxConcurrentDownloads);
 var progress = new Progress(downloads.length, progressBarLength);
+
 
 function main() {
 
