@@ -25,7 +25,15 @@ const jsonFile = (!options.f.startsWith("/") && !options.f.startsWith("./")) ? "
 const progressBarLength = 20;
 
 // INIT
-var downloads = require(jsonFile)["Saved Media"];
+try {
+    var downloads = require(jsonFile)["Saved Media"];
+} catch (e) {
+    if (e.code === 'MODULE_NOT_FOUND') {
+        console.log("Couldn't find the file " + jsonFile + ", did you provide the right filepath?");
+        exit();
+    }
+    throw e;
+}
 var queue = new Queue(maxConcurrentDownloads);
 var progress = new Progress(downloads.length, progressBarLength);
 
