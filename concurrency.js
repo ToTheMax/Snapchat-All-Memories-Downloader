@@ -1,5 +1,4 @@
 module.exports = class Queue {
-
     constructor(maxPendingPromises) {
         this.queue = [];
         this.pendingPromises = 0;
@@ -33,11 +32,11 @@ module.exports = class Queue {
                     item.resolve(value);
                     this.dequeue();
                 })
-                .catch(err => {
+                .catch((err) => {
                     this.pendingPromises--;
                     item.reject(err);
                     this.dequeue();
-                })
+                });
         } catch (err) {
             this.pendingPromises--;
             item.reject(err);
@@ -45,4 +44,4 @@ module.exports = class Queue {
         }
         return true;
     }
-}
+};
