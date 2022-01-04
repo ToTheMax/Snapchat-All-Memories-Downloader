@@ -88,8 +88,8 @@ function main() {
 function getFileName(download, fileTime) {
     var fileName = fileTime.format("YYYY-MM-DD_HH-mm-ss");
 
-    if (download["Media Type"] == "PHOTO") fileName += ".jpg";
-    else if (download["Media Type"] == "VIDEO") fileName += ".mp4";
+    if (download["Media Type"].toLowerCase() == "image" || download["Media Type"].toLowerCase() == "photo") fileName += ".jpg";
+    else if (download["Media Type"].toLowerCase() == "video") fileName += ".mp4";
 
     return fileName;
 }
