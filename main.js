@@ -32,6 +32,7 @@ const jsonFile =
     !options.f.startsWith("/") && !options.f.startsWith("./")
         ? "./" + options.f
         : options.f;
+var names = new Set();
 
 // INIT
 try {
@@ -143,7 +144,7 @@ const getDownloadLink = (url, body, fileName, fileTime) =>
 const downloadMemory = (downloadUrl, fileName, fileTime) =>
     new Promise((resolve, reject) => {
         // Check if there already exists a file with the same name/timestamp
-        if (fs.existsSync(outputDir + "/" + fileName)) {
+        if (fs.existsSync(outputDir + "/" + fileName) || names.has(fileName)) {
             duplicates = 1;
             while (true) {
                 var extensionPos = fileName.lastIndexOf(".");
@@ -153,13 +154,14 @@ const downloadMemory = (downloadUrl, fileName, fileTime) =>
                     duplicates +
                     ")" +
                     fileName.substring(extensionPos, fileName.length);
-                if (fs.existsSync(outputDir + "/" + newFilename)) duplicates++;
+                if (fs.existsSync(outputDir + "/" + newFilename) || names.has(newFilename)) duplicates++;
                 else {
                     fileName = newFilename;
                     break;
                 }
             }
         }
+        names.add(fileName);
 
         // Lambda function for downloading with retries
         const download = (maxRetries) => {
