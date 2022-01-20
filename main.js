@@ -106,27 +106,39 @@ const getDownloadLink = (url, body, fileName, fileTime) =>
                 "Content-Type": "application/x-www-form-urlencoded",
             },
         };
-
-        var req = https.request(options, (res) => {
-            data = "";
-            res.on("data", (chunk) => {
-                data += chunk;
+        
+        // Lambda function for getting link with retries
+        const getLink = (maxRetries) => {
+            var req = https.request(options, (res) => {
+                data = "";
+                res.on("data", (chunk) => {
+                    data += chunk;
+                });
+                res.on("end", function () {
+                    if (res.statusCode == 200) {
+                        resolve([data, fileName, fileTime]);
+                    } else {
+                        if(maxRetries > 0) {
+                            getLink(maxRetries - 1);
+                        } else {
+                            reject("status error");
+                        }
+                    }
+                });
             });
-            res.on("end", function () {
-                if (res.statusCode == 200) {
-                    resolve([data, fileName, fileTime]);
+            req.on("error", function () {
+                req.destroy();
+                if(maxRetries > 0) {
+                    getLink(maxRetries - 1);
                 } else {
-                    reject("status error");
+                    reject("request error");
                 }
             });
-        });
-        req.on("error", function () {
-            req.destroy();
-            reject("request error");
-        });
-
-        req.write(body);
-        req.end();
+            req.write(body);
+            req.end();
+        }
+        // Get Link with max retries of 3
+        getLink(3);
     });
 
 const downloadMemory = (downloadUrl, fileName, fileTime) =>
@@ -151,29 +163,42 @@ const downloadMemory = (downloadUrl, fileName, fileTime) =>
         }
         names.add(fileName);
 
-        var req = https.get(downloadUrl, function (res) {
-            if (res.statusCode == 200) {
-                // Create the file and write to it
-                var file = fs.createWriteStream(outputDir + "/" + fileName);
-                res.pipe(file);
-                res.on("end", function () {
-                    file.close();
-                    // Update the file creation date
-                    utimes(file.path, {
-                        btime: fileTime.valueOf(), // birthtime (Windows & Mac)
-                        mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
+        // Lambda function for downloading with retries
+        const download = (maxRetries) => {
+            var req = https.get(downloadUrl, function (res) {
+                if (res.statusCode == 200) {
+                    // Create the file and write to it
+                    var file = fs.createWriteStream(outputDir + "/" + fileName);
+                    res.pipe(file);
+                    res.on("end", function () {
+                        file.close();
+                        // Update the file creation date
+                        utimes(file.path, {
+                            btime: fileTime.valueOf(), // birthtime (Windows & Mac)
+                            mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
+                        });
+                        resolve(true);
                     });
-                    resolve(true);
-                });
-            } else {
-                reject("status error");
-            }
-        });
-        req.on("error", function () {
-            req.destroy();
-            reject("request error");
-        });
-        req.end();
+                } else {
+                    if(maxRetries > 0) {
+                        download(maxRetries - 1);
+                    } else {
+                        reject("status error");
+                    }
+                }
+            });
+            req.on("error", function () {
+                req.destroy();
+                if(maxRetries > 0) {
+                    download(maxRetries - 1);
+                } else {
+                    reject("request error");
+                }
+            });
+            req.end();
+        }
+        // Download with max retries of 3
+        download(3);
     });
 
 main();
