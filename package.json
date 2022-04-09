@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "commander": "^8.0.0",
-    "moment": "2.29.0",
+    "moment": "2.29.2",
     "utimes": "4.0.2"
   }
 }
