@@ -2,14 +2,28 @@
 This script will download each memory in bulk so you don't have to click the download links one by one.
 
 ## Requirements
-1. Node.js version 10 or higher (https://nodejs.org/)  
+> Locally installed Node.js 10+ (https://nodejs.org/)  
+> or any recent Docker version (https://docker.com/)
 
-## How to run
+## Run locally
 1. Download your Snapchat data: https://support.snapchat.com/en-US/a/download-my-data
 2. Extract the zip-file
 3. Place all the scripts in this folder OR set the `-f` flag pointing to the `memories_history.json` file
 4. Install the required modules with `npm install`
 5. Run the script: `node main.js`
+
+## Run using docker
+1. Build the docker container: `docker build -t snapchat-all-memories-downloader .`
+2. Test the container: `docker run -it --rm snapchat-all-memories-downloader --help`
+3. Run the container: 
+```bash
+# Mounting the Download folder and
+# memories_history.json in current directory
+docker run -it --rm \
+    -v $PWD/Downloads/:/app/Downloads/ \
+    -v $PWD/memories_history.json:/app/json/memories_history.json \
+    snapchat-all-memories-downloader -o ./Downloads/
+```
 
 ## Optional Arguments
 ```
