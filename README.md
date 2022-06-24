@@ -22,7 +22,7 @@ This script will download each memory in bulk so you don't have to click the dow
 docker run -it --rm \
     -v $PWD/Downloads/:/app/Downloads/ \
     -v $PWD/memories_history.json:/app/json/memories_history.json \
-    snapchat-all-memories-downloader -o ./Downloads/
+    snapchat-all-memories-downloader -o ./Downloads/ -c 30
 ```
 
 ## Optional Arguments
