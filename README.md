@@ -1,6 +1,11 @@
 # Snapchat-All-Memories-Downloader
 This script will download each memory in bulk so you don't have to click the download links one by one.
 
+
+<a href="https://www.buymeacoffee.com/tothemax" target="_blank">
+<img src="https://github.com/appcraftstudio/buymeacoffee/raw/master/Images/snapshot-bmc-button.png" width="300">
+</a>
+
 ## Requirements
 > Locally installed Node.js 10+ (https://nodejs.org/)  
 > or any recent Docker version (https://docker.com/)
@@ -49,3 +54,10 @@ Options:
 2. `Syntax Compilation Error` -> please have a look at [this](https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/issues/4#issuecomment-664035581) issue
 3. `node-gyp` errors when running `npm install` on Windows -> install [this](https://github.com/nodejs/node-gyp#on-windows)
 4. Still problems? please make a new [issue](https://github.com/ToTheiMax/Snapchat-All-Memories-Downloader/issues) 
+
+
+<br>
+<a href="https://www.buymeacoffee.com/tothemax" target="_blank">
+<img src="https://github.com/appcraftstudio/buymeacoffee/raw/master/Images/snapshot-bmc-button.png" width="300">
+</a>
+
