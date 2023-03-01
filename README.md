@@ -9,7 +9,7 @@ This script will download all your Snapchat memories in bulk, including the time
 - Request your data: https://accounts.snapchat.com/accounts/downloadmydata
 <img src="https://user-images.githubusercontent.com/21971014/222148266-a9c002e7-3fa5-42da-b106-c2b9cbcbfbda.png" width="600">
 
-> If you enable "include downloadable files" you will receive the memories in the zipfile but they will not have any timestamps. <br> If you enable "filter by date range" you will not receive all your memories.
+> With "include downloadable files" you will receive the memories but without timestamps <br> With "include downloadable files" enabled you will not receive a `memories.json` file <br> With "filter by date range" enabled you will not receive all your memories.
 
 ## Downloading your Memories
 - Clone or [Download](https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/archive/refs/heads/master.zip) this Repository
