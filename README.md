@@ -1,53 +1,58 @@
 # Snapchat-All-Memories-Downloader
-This script will download each memory in bulk so you don't have to click the download links one by one.
+This script will download all your Snapchat memories in bulk, including the timestamp.
+
+![Example](https://i.imgur.com/QVvh3I4.gif)
 
 
-<a href="https://www.buymeacoffee.com/tothemax" target="_blank">
-<img src="https://github.com/appcraftstudio/buymeacoffee/raw/master/Images/snapshot-bmc-button.png" width="300">
-</a>
+## Getting your Data
+- Login to Snapchat: https://accounts.snapchat.com/
+- Request your data: https://accounts.snapchat.com/accounts/downloadmydata
+<img src="https://user-images.githubusercontent.com/21971014/222148266-a9c002e7-3fa5-42da-b106-c2b9cbcbfbda.png" width="600">
 
-## Requirements
-> Locally installed Node.js 10+ (https://nodejs.org/)  
-> or any recent Docker version (https://docker.com/)
+> If you enable "include downloadable files" you will receive the memories in the zipfile but they will not have any timestamps. <br> If you enable "filter by date range" you will not receive all your memories.
 
-## Run locally
-1. Download your Snapchat data: https://support.snapchat.com/en-US/a/download-my-data
-2. Extract the zip-file
-3. Place all the scripts in this folder OR set the `-f` flag pointing to the `memories_history.json` file
-4. Install the required modules with `npm install`
-5. Run the script: `node main.js`
+## Downloading your Memories
+- Clone or [Download](https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/archive/refs/heads/master.zip) this Repository
+- Extract the zip-file received from Snapchat in the same folder
+- Run the script:
 
-## Run using docker
-1. Build the docker container: `docker build -t snapchat-all-memories-downloader .`
-2. Test the container: `docker run -it --rm snapchat-all-memories-downloader --help`
-3. Run the container: 
-```bash
-# Mounting the Download folder and
-# memories_history.json in current directory
-docker run -it --rm \
-    -v $PWD/Downloads/:/app/Downloads/ \
-    -v $PWD/memories_history.json:/app/json/memories_history.json \
-    snapchat-all-memories-downloader -o ./Downloads/ -c 30
-```
+    ### OPTION 1: Run locally
+    - Requirements: Node.js 10+
+    - Install the required modules: `npm install`
+    - Run the script: 
+    ```
+    node main.js
+    ```
 
-## Optional Arguments
-```
-Usage: main [options]
+    ### OPTION 2: Run with Docker
+    - Requirements: Docker
+    - Build the docker container: `docker build -t snapchat-all-memories-downloader .`
+    - Run the script
+    ```bash
+    # Mounts a Downloads folder and memories_history.json with current directory
+    docker run -it --rm \
+        -v $PWD/Downloads/:/app/Downloads/ \
+        -v $PWD/memories_history.json:/app/json/memories_history.json \
+        snapchat-all-memories-downloader -o ./Downloads/
+    ```
 
-A script to download Snapchat Memories
 
-Example:
-  node main.js -c 50 -f ./json/memories_history.json -o Downloads
+    ### Optional Arguments
+    ```
+    Usage: main [options]
 
-Options:
-  -c <number>     Number of concurrent downloads (default: 30)
-  -f <path>       Filepath to memories_history.json (default: "./json/memories_history.json")
-  -o <directory>  Download directory (default: "Downloads")
-  -h, --help      display help for command
-```
+    A script to download Snapchat Memories
 
-## Example
-![Alt Text](https://i.imgur.com/QVvh3I4.gif)
+    Example:
+      node main.js -c 50 -f ./json/memories_history.json -o Downloads
+
+    Options:
+      -c <number>     Number of concurrent downloads (default: 30)
+      -f <path>       Filepath to memories_history.json (default: "./json/memories_history.json")
+      -o <directory>  Download directory (default: "Downloads")
+      -h, --help      display help for command
+    ```
+
 
 ## Trouble Shooting
 1. Make sure you get a fresh zip-file before running the script, links will expire over time
