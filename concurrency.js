@@ -1,4 +1,4 @@
-module.exports = class Queue {
+export default class Queue {
     constructor(maxPendingPromises) {
         this.queue = [];
         this.pendingPromises = 0;
