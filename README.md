@@ -52,6 +52,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
       -c <number>     Number of concurrent downloads (default: 30)
       -f <path>       Filepath to memories_history.json (default: "./json/memories_history.json")
       -o <directory>  Download directory (default: "Downloads")
+      -l              Preserve location data as file metadata (Need to have exiftool installed)
       -h, --help      display help for command
     ```
 
