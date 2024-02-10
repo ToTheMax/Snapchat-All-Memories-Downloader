@@ -1,4 +1,4 @@
-module.exports = class Progress {
+export default class Progress {
     constructor(total, progressBarLength) {
         this.total = total;
         this.progressBarLength = progressBarLength;
