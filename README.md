@@ -19,7 +19,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
 - Run the script:
 
     ### OPTION 1: Run locally
-    - Requirements: Node.js 10+
+    - Requirements: Node.js 14+
     - Install the required modules: `npm install`
     - Run the script: 
     ```
@@ -34,7 +34,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
     # Mounts a Downloads folder and memories_history.json with current directory
     docker run -it --rm \
         -v $PWD/Downloads/:/app/Downloads/ \
-        -v $PWD/memories_history.json:/app/json/memories_history.json \
+        -v $PWD/json/memories_history.json:/app/json/memories_history.json \
         snapchat-all-memories-downloader -o ./Downloads/
     ```
 

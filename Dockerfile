@@ -1,4 +1,4 @@
-FROM nikolaik/python-nodejs:python3.10-nodejs12
+FROM node:20
 WORKDIR /app
 
 COPY package.json package-lock.json /app/
