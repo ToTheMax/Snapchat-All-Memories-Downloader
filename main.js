@@ -106,6 +106,16 @@ function main() {
 function getFileName(download, fileTime) {
   var fileName = fileTime.format("YYYY-MM-DD_HH-mm-ss");
 
+    // Check if there already exists a file with the same name/timestamp
+    if (names.has(fileName)) {
+      var duplicates = 1;
+      while (names.has(fileName + ` (${duplicates})`)) {
+          duplicates++;
+      }
+      fileName += ` (${duplicates})`;
+    }
+  names.add(fileName);
+
   if (
     download["Media Type"].toLowerCase() == "image" ||
     download["Media Type"].toLowerCase() == "photo"
@@ -164,94 +174,79 @@ const getDownloadLink = (url, body, fileName, fileTime) =>
 
 const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
   new Promise((resolve, reject) => {
-    // Check if there already exists a file with the same name/timestamp
-    if (existsSync(outputDir + "/" + fileName) || names.has(fileName)) {
-      duplicates = 1;
-      while (true) {
-        var extensionPos = fileName.lastIndexOf(".");
-        var newFilename =
-          fileName.substring(0, extensionPos) +
-          " (" +
-          duplicates +
-          ")" +
-          fileName.substring(extensionPos, fileName.length);
-        if (existsSync(outputDir + "/" + newFilename) || names.has(newFilename))
-          duplicates++;
-        else {
-          fileName = newFilename;
-          break;
-        }
-      }
+    // Check if there already exists a file with the same name
+    if (existsSync(outputDir + "/" + fileName)) {
+      resolve(true);
     }
-    names.add(fileName);
-
-    // Lambda function for downloading with retries
-    const download = (maxRetries) => {
-      var req = get(downloadUrl, (res) => {
-        if (res.statusCode == 200) {
-          // Create the file and write to it
-          const filepath = path.join(outputDir, fileName);
-          var file = createWriteStream(filepath);
-          res.pipe(file);
-
-          res.on("end", async () => {
-            file.close();
-            // Update the file creation date
-            utimes(file.path, {
-              btime: fileTime.valueOf(), // birthtime (Windows & Mac)
-              mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
-            });
-
-            // Update the file location metadata
-            if (options.l) {
-              if (lat && long) {
-                const exiftool = new Exiftool();
-                await exiftool.init(filepath);
-
-                exiftool.setOverwriteOriginal(true);
-
-                const tagsToWrite = [
-                  `-EXIF:DateTimeOriginal=${fileTime.format(
-                    "YYYY-MM-DDTHH:mm:ss"
-                  )}`,
-                  `-EXIF:CreateDate=${fileTime.format("YYYY-MM-DDTHH:mm:ss")}`,
-                  `-EXIF:GPSLatitude=${lat}`,
-                  `-EXIF:GPSLongitude=${long}`,
-                  `-EXIF:GPSLatitudeRef=${parseFloat(lat) > 0 ? "N" : "S"}`,
-                  `-EXIF:GPSLongitudeRef=${parseFloat(long) > 0 ? "E" : "W"}`,
-                ];
-
-                await exiftool.writeMetadataToTag(tagsToWrite);
+    else{
+      // Lambda function for downloading with retries
+      const download = (maxRetries) => {
+        var req = get(downloadUrl, (res) => {
+          if (res.statusCode == 200) {
+            // Create the file and write to it
+            const filepath = path.join(outputDir, fileName);
+            var file = createWriteStream(filepath);
+            res.pipe(file);
+  
+            res.on("end", async () => {
+              file.close();
+              // Update the file creation date
+              utimes(file.path, {
+                btime: fileTime.valueOf(), // birthtime (Windows & Mac)
+                mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
+              });
+  
+              // Update the file location metadata
+              if (options.l) {
+                if (lat && long) {
+                  const exiftool = new Exiftool();
+                  await exiftool.init(filepath);
+  
+                  exiftool.setOverwriteOriginal(true);
+  
+                  const tagsToWrite = [
+                    `-EXIF:DateTimeOriginal=${fileTime.format(
+                      "YYYY-MM-DDTHH:mm:ss"
+                    )}`,
+                    `-EXIF:CreateDate=${fileTime.format("YYYY-MM-DDTHH:mm:ss")}`,
+                    `-EXIF:GPSLatitude=${lat}`,
+                    `-EXIF:GPSLongitude=${long}`,
+                    `-EXIF:GPSLatitudeRef=${parseFloat(lat) > 0 ? "N" : "S"}`,
+                    `-EXIF:GPSLongitudeRef=${parseFloat(long) > 0 ? "E" : "W"}`,
+                  ];
+  
+                  await exiftool.writeMetadataToTag(tagsToWrite);
+                }
               }
+  
+              resolve(true);
+            });
+          } else {
+            console.log("download error", res.statusCode, res.statusMessage);
+            if (maxRetries > 0) {
+              download(maxRetries - 1);
+            } else {
+              reject("status error");
             }
-
-            resolve(true);
-          });
-        } else {
-          console.log("download error", res.statusCode, res.statusMessage);
+          }
+        });
+  
+        req.on("error", function () {
+          console.log("request error");
+          req.destroy();
           if (maxRetries > 0) {
             download(maxRetries - 1);
           } else {
-            reject("status error");
+            reject("request error");
           }
-        }
-      });
+        });
+  
+        req.end();
+      };
+      // Download with max retries of 3
+      download(3);
+    }
 
-      req.on("error", function () {
-        console.log("request error");
-        req.destroy();
-        if (maxRetries > 0) {
-          download(maxRetries - 1);
-        } else {
-          reject("request error");
-        }
-      });
-
-      req.end();
-    };
-
-    // Download with max retries of 3
-    download(3);
   });
 
 main();
