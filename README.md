@@ -1,5 +1,5 @@
 # Snapchat-All-Memories-Downloader
-This script will download all your Snapchat memories in bulk, **including the timestamp**.
+This script will download all your Snapchat memories in bulk, **including the timestamp and geolocation**.
 
 ![Example](https://i.imgur.com/QVvh3I4.gif)
 
@@ -9,7 +9,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
 - Request your data: https://accounts.snapchat.com/accounts/downloadmydata
 - Select the options shown in the image
 
-> ❗ If you don't care about timestamps, you don't need this tool and can just enable the top option ❗
+> ❗ If you don't care about timestamps or geolocations, you don't need this tool and can just enable the top option ❗
 <img src="https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/assets/21971014/242117ef-aad0-45ec-85a7-dada98c46762" width="600">
 
 
