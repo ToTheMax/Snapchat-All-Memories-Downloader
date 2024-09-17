@@ -22,10 +22,11 @@ program
   .option(
     "-f <path>",
     "Filepath to memories_history.json",
-    "./json/memories_history.json"
+    "./memories_history.json"
   )
   .option("-o <directory>", "Download directory", "Downloads")
-  .option("-l", "Preserve location data as file metadata", false);
+  .option("-l", "Preserve location data as file metadata", false)
+  .option("-v", "Verbose mode", false);
 
 program.parse();
 const options = program.opts();
@@ -59,7 +60,7 @@ try {
 }
 
 var queue = new Queue(maxConcurrentDownloads);
-var progress = new Progress(downloads.length, progressBarLength);
+var progress = new Progress(downloads.length, progressBarLength, options.v);
 
 function main() {
   // Create download directory
@@ -83,7 +84,7 @@ function main() {
     queue
       .enqueue(() => getDownloadLink(url, body, fileName, fileTime))
       .then((result) => {
-        progress.cdnLinkSucceeded(true);
+        progress.cdnLinkSucceeded(true,result[0]);
 
         // Download the file
         queue
@@ -91,14 +92,16 @@ function main() {
             downloadMemory(result[0], result[1], result[2], lat, long)
           )
           .then((success) => {
-            progress.downloadSucceeded(true);
+            progress.downloadSucceeded(true,result[0]);
           })
           .catch((err) => {
-            progress.downloadSucceeded(false);
+            progress.downloadSucceeded(false),result[0];
+            progress.logError(err);
           });
       })
       .catch((err) => {
-        progress.cdnLinkSucceeded(false);
+        progress.cdnLinkSucceeded(false,downloads[i]["Download Link"]);
+        progress.logError("CDN link error: " + downloads[i]["Download Link"]);
       });
   }
 }
@@ -223,6 +226,9 @@ const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
             });
           } else {
             console.log("download error", res.statusCode, res.statusMessage);
+            progress.logError(
+              `Download error: ${res.statusCode} ${res.statusMessage}`
+            );
             if (maxRetries > 0) {
               download(maxRetries - 1);
             } else {
@@ -233,6 +239,7 @@ const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
   
         req.on("error", function () {
           console.log("request error");
+          progress.logError("Request error" + downloadUrl);
           req.destroy();
           if (maxRetries > 0) {
             download(maxRetries - 1);
