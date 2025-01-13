@@ -25,7 +25,6 @@ program
     "./json/memories_history.json"
   )
   .option("-o <directory>", "Download directory", "Downloads")
-  .option("-l", "Preserve location data as file metadata", false);
 
 program.parse();
 const options = program.opts();
@@ -39,18 +38,13 @@ const jsonFile =
     ? "./" + options.f
     : options.f;
 var names = new Set();
+let exiftoolProcess = exiftool;
 
-// Initialize exiftool only if location preservation is enabled
-let exiftoolProcess;
-if (options.l) {
-  exiftoolProcess = exiftool;
-}
 
 // INIT
 let downloads = [];
 try {
   downloads = JSON.parse(readFileSync(jsonFile))["Saved Media"];
-  console.log("File loaded");
 } catch (e) {
   console.log(e);
   console.log(
@@ -73,12 +67,7 @@ function main() {
     let fileName = getFileName(downloads[i], fileTime);
 
     // Parse "Location": "Latitude, Longitude: <lat>, <long>"
-
-    let [lat, long] = ["", ""];
-
-    if (options.l) {
-      [lat, long] = downloads[i]["Location"].split(": ")[1].split(", ");
-    }
+    let [lat, long] = downloads[i]["Location"].split(": ")[1].split(", ");
 
     // First get CDN download link
     queue
@@ -106,6 +95,16 @@ function main() {
 
 function getFileName(download, fileTime) {
   var fileName = fileTime.format("YYYY-MM-DD_HH-mm-ss");
+
+  // Check if there already exists a file with the same name/timestamp
+  if (names.has(fileName)) {
+    var duplicates = 1;
+    while (names.has(fileName + ` (${duplicates})`)) {
+      duplicates++;
+    }
+    fileName += ` (${duplicates})`;
+  }
+  names.add(fileName);
 
   if (
     download["Media Type"].toLowerCase() == "image" ||
@@ -165,84 +164,66 @@ const getDownloadLink = (url, body, fileName, fileTime) =>
 
 const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
   new Promise((resolve, reject) => {
-    // Check if there already exists a file with the same name/timestamp
-    if (existsSync(outputDir + "/" + fileName) || names.has(fileName)) {
-      duplicates = 1;
-      while (true) {
-        var extensionPos = fileName.lastIndexOf(".");
-        var newFilename =
-          fileName.substring(0, extensionPos) +
-          " (" +
-          duplicates +
-          ")" +
-          fileName.substring(extensionPos, fileName.length);
-        if (existsSync(outputDir + "/" + newFilename) || names.has(newFilename))
-          duplicates++;
-        else {
-          fileName = newFilename;
-          break;
-        }
-      }
+    // Check if there already exists a file with the same name
+    if (existsSync(outputDir + "/" + fileName)) {
+      resolve(true);
     }
-    names.add(fileName);
+    else {
+      // Lambda function for downloading with retries
+      const download = (maxRetries) => {
+        var req = get(downloadUrl, (res) => {
+          if (res.statusCode == 200) {
+            // Create the file and write to it
+            const filepath = path.join(outputDir, fileName);
+            var file = createWriteStream(filepath);
+            res.pipe(file);
 
-    // Lambda function for downloading with retries
-    const download = (maxRetries) => {
-      var req = get(downloadUrl, (res) => {
-        if (res.statusCode == 200) {
-          // Create the file and write to it
-          const filepath = path.join(outputDir, fileName);
-          var file = createWriteStream(filepath);
-          res.pipe(file);
+            res.on("end", async () => {
+              file.close();
 
-          res.on("end", async () => {
-            file.close();
-            // Update the file creation date
-            utimes(file.path, {
-              btime: fileTime.valueOf(), // birthtime (Windows & Mac)
-              mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
-            });
-
-            // Update the file location metadata
-            if (options.l && lat && long) {
-              const filepath = path.join(outputDir, fileName);
+              // Update the file location metadata
               await exiftoolProcess.write(filepath, {
-                DateTimeOriginal: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
-                CreateDate: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
+                AllDates: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
                 GPSLatitude: parseFloat(lat),
                 GPSLongitude: parseFloat(long),
                 GPSLatitudeRef: parseFloat(lat) > 0 ? "N" : "S",
                 GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
               }, ['-overwrite_original']);
-            }
 
-            resolve(true);
-          });
-        } else {
-          console.log("download error", res.statusCode, res.statusMessage);
+              // Update system file timestamps
+              await utimes(file.path, {
+                btime: fileTime.valueOf(), // birthtime (Windows & Mac)
+                mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
+                atime: fileTime.valueOf()  // access time (Linux)
+              });
+
+              resolve(true);
+            });
+          } else {
+            console.log("download error", res.statusCode, res.statusMessage);
+            if (maxRetries > 0) {
+              download(maxRetries - 1);
+            } else {
+              reject("status error");
+            }
+          }
+        });
+
+        req.on("error", function () {
+          console.log("request error");
+          req.destroy();
           if (maxRetries > 0) {
             download(maxRetries - 1);
           } else {
-            reject("status error");
+            reject("request error");
           }
-        }
-      });
+        });
 
-      req.on("error", function () {
-        console.log("request error");
-        req.destroy();
-        if (maxRetries > 0) {
-          download(maxRetries - 1);
-        } else {
-          reject("request error");
-        }
-      });
-
-      req.end();
-    };
-
-    // Download with max retries of 3
-    download(3);
+        req.end();
+      };
+      // Download with max retries of 3
+      download(3);
+    }
   });
 
 main();
