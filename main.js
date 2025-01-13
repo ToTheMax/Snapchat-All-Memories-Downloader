@@ -8,7 +8,7 @@ const { utc } = moment;
 import { utimes } from "utimes";
 import { Command } from "commander";
 import { exit } from "process";
-import { Exiftool } from "@mattduffy/exiftool";
+import { exiftool } from "exiftool-vendored";
 import { readFileSync } from "fs";
 import path from "path";
 
@@ -40,9 +40,10 @@ const jsonFile =
     : options.f;
 var names = new Set();
 
+// Initialize exiftool only if location preservation is enabled
+let exiftoolProcess;
 if (options.l) {
-  const exiftool = new Exiftool();
-  exiftool.which();
+  exiftoolProcess = exiftool;
 }
 
 // INIT
@@ -203,26 +204,16 @@ const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
             });
 
             // Update the file location metadata
-            if (options.l) {
-              if (lat && long) {
-                const exiftool = new Exiftool();
-                await exiftool.init(filepath);
-
-                exiftool.setOverwriteOriginal(true);
-
-                const tagsToWrite = [
-                  `-EXIF:DateTimeOriginal=${fileTime.format(
-                    "YYYY-MM-DDTHH:mm:ss"
-                  )}`,
-                  `-EXIF:CreateDate=${fileTime.format("YYYY-MM-DDTHH:mm:ss")}`,
-                  `-EXIF:GPSLatitude=${lat}`,
-                  `-EXIF:GPSLongitude=${long}`,
-                  `-EXIF:GPSLatitudeRef=${parseFloat(lat) > 0 ? "N" : "S"}`,
-                  `-EXIF:GPSLongitudeRef=${parseFloat(long) > 0 ? "E" : "W"}`,
-                ];
-
-                await exiftool.writeMetadataToTag(tagsToWrite);
-              }
+            if (options.l && lat && long) {
+              const filepath = path.join(outputDir, fileName);
+              await exiftoolProcess.write(filepath, {
+                DateTimeOriginal: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
+                CreateDate: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
+                GPSLatitude: parseFloat(lat),
+                GPSLongitude: parseFloat(long),
+                GPSLatitudeRef: parseFloat(lat) > 0 ? "N" : "S",
+                GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
+              }, ['-overwrite_original']);
             }
 
             resolve(true);
