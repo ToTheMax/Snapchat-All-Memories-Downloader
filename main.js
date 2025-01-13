@@ -5,12 +5,12 @@ import Queue from "./concurrency.js";
 import Progress from "./progress.js";
 import moment from "moment";
 const { utc } = moment;
-import { utimes } from "utimes";
 import { Command } from "commander";
 import { exit } from "process";
 import { exiftool } from "exiftool-vendored";
 import { readFileSync } from "fs";
 import path from "path";
+import fs from "fs";
 
 // PARSE ARGUMENTS
 const program = new Command();
@@ -190,12 +190,9 @@ const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
                 GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
               }, ['-overwrite_original']);
 
-              // Update system file timestamps
-              await utimes(file.path, {
-                btime: fileTime.valueOf(), // birthtime (Windows & Mac)
-                mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
-                atime: fileTime.valueOf()  // access time (Linux)
-              });
+              // Update file system timestamps
+              const timestamp = fileTime.valueOf() / 1000; // Convert to seconds for fs.utimes
+              fs.utimesSync(file.path, timestamp, timestamp);
 
               resolve(true);
             });

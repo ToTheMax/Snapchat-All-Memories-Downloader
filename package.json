@@ -11,7 +11,6 @@
     "dependencies": {
         "commander": "^8.0.0",
         "exiftool-vendored": "^16.0.0",
-        "moment": "2.29.4",
-        "utimes": "4.0.2"
+        "moment": "2.29.4"
     }
 }
