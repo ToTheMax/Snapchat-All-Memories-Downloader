@@ -1,7 +1,7 @@
 # Snapchat-All-Memories-Downloader
-This script will download all your Snapchat memories in bulk, **including the timestamp**.
+This script will download all your Snapchat memories in bulk, **including the timestamp and geolocation**.
 
-![Example](https://i.imgur.com/QVvh3I4.gif)
+![demo](https://i.imgur.com/QVvh3I4.gif)
 
 
 ## Getting your Data
@@ -9,8 +9,9 @@ This script will download all your Snapchat memories in bulk, **including the ti
 - Request your data: https://accounts.snapchat.com/accounts/downloadmydata
 - Select the options shown in the image
 
-> ❗ If you don't care about timestamps, you don't need this tool and can just enable the top option ❗
-<img src="https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/assets/21971014/242117ef-aad0-45ec-85a7-dada98c46762" width="600">
+> ❗ If you don't care about timestamps or geolocations, you don't need this tool and can just enable the top option ❗
+
+![export configuration](https://github.com/user-attachments/assets/cfd40f96-386e-408c-9691-4dd32d2ad5ef)
 
 
 ## Downloading your Memories
@@ -19,7 +20,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
 - Run the script:
 
     ### OPTION 1: Run locally
-    - Requirements: Node.js 10+
+    - Requirements: Node.js 14+
     - Install the required modules: `npm install`
     - Run the script: 
     ```
@@ -34,7 +35,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
     # Mounts a Downloads folder and memories_history.json with current directory
     docker run -it --rm \
         -v $PWD/Downloads/:/app/Downloads/ \
-        -v $PWD/memories_history.json:/app/json/memories_history.json \
+        -v $PWD/json/memories_history.json:/app/json/memories_history.json \
         snapchat-all-memories-downloader -o ./Downloads/
     ```
 
