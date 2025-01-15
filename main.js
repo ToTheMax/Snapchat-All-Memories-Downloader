@@ -1,16 +1,21 @@
-// IMPORTS
+// Node.js built-in modules
+import { existsSync, mkdirSync, createWriteStream, readFileSync } from "fs";
+import fs from "fs";
 import { request, get } from "https";
-import { existsSync, mkdirSync, createWriteStream } from "fs";
-import Queue from "./concurrency.js";
-import Progress from "./progress.js";
-import moment from "moment";
-const { utc } = moment;
-import { utimes } from "utimes";
-import { Command } from "commander";
-import { exit } from "process";
-import { Exiftool } from "@mattduffy/exiftool";
-import { readFileSync } from "fs";
 import path from "path";
+import { exit } from "process";
+
+// Third-party modules
+import { Command } from "commander";
+import { fileTypeFromBuffer } from 'file-type';
+import moment from "moment";
+import { exiftool } from "exiftool-vendored";
+
+// Local modules
+import Progress from "./progress.js";
+import Queue from "./concurrency.js";
+
+const { utc } = moment;
 
 // PARSE ARGUMENTS
 const program = new Command();
@@ -25,7 +30,6 @@ program
     "./json/memories_history.json"
   )
   .option("-o <directory>", "Download directory", "Downloads")
-  .option("-l", "Preserve location data as file metadata", false);
 
 program.parse();
 const options = program.opts();
@@ -39,17 +43,13 @@ const jsonFile =
     ? "./" + options.f
     : options.f;
 var names = new Set();
-
-if (options.l) {
-  const exiftool = new Exiftool();
-  exiftool.which();
-}
+let exiftoolProcess = exiftool;
+let completedDownloads = 0;
 
 // INIT
 let downloads = [];
 try {
   downloads = JSON.parse(readFileSync(jsonFile))["Saved Media"];
-  console.log("File loaded");
 } catch (e) {
   console.log(e);
   console.log(
@@ -58,8 +58,37 @@ try {
   exit();
 }
 
+const totalDownloads = downloads.length;
+
 var queue = new Queue(maxConcurrentDownloads);
 var progress = new Progress(downloads.length, progressBarLength);
+var failedDownloads = [];
+
+function handleDownloadComplete(success, downloadInfo = null) {
+  completedDownloads++;
+  if (!success && downloadInfo) {
+    failedDownloads.push(downloadInfo);
+  }
+
+  progress.downloadSucceeded(success);
+
+  if (completedDownloads === totalDownloads) {
+    exiftoolProcess.end().then(() => {
+      const successCount = totalDownloads - failedDownloads.length;
+      console.log(`\n✓ ${successCount} files successfully downloaded`);
+
+      if (failedDownloads.length > 0) {
+        fs.writeFileSync(
+          "memories_failed.json",
+          JSON.stringify({ "Saved Media": failedDownloads }, null, 2)
+        );
+        console.log(`✗ ${failedDownloads.length} files failed (see memories_failed.json)`);
+        console.log(`Retry failed downloads: node main.js -f memories_failed.json`);
+      }
+      exit(0);
+    });
+  }
+}
 
 function main() {
   // Create download directory
@@ -67,17 +96,13 @@ function main() {
 
   // Start downloads
   for (let i = 0; i < downloads.length; i++) {
-    let [url, body] = downloads[i]["Download Link"].split("?", 2);
-    const fileTime = utc(downloads[i]["Date"], "YYYY-MM-DD HH:mm:ss Z");
-    let fileName = getFileName(downloads[i], fileTime);
+    const downloadInfo = downloads[i];
+    let [url, body] = downloadInfo["Download Link"].split("?", 2);
+    const fileTime = utc(downloadInfo["Date"], "YYYY-MM-DD HH:mm:ss Z");
+    let fileName = getFileName(downloadInfo, fileTime);
 
     // Parse "Location": "Latitude, Longitude: <lat>, <long>"
-
-    let [lat, long] = ["", ""];
-
-    if (options.l) {
-      [lat, long] = downloads[i]["Location"].split(": ")[1].split(", ");
-    }
+    let [lat, long] = downloadInfo["Location"].split(": ")[1].split(", ");
 
     // First get CDN download link
     queue
@@ -88,17 +113,18 @@ function main() {
         // Download the file
         queue
           .enqueue(() =>
-            downloadMemory(result[0], result[1], result[2], lat, long)
+            downloadMemory(result[0], result[1], result[2], lat, long, downloadInfo)
           )
           .then((success) => {
-            progress.downloadSucceeded(true);
+            handleDownloadComplete(success);
           })
           .catch((err) => {
-            progress.downloadSucceeded(false);
+            handleDownloadComplete(false, downloadInfo);
           });
       })
       .catch((err) => {
         progress.cdnLinkSucceeded(false);
+        handleDownloadComplete(false, downloadInfo);
       });
   }
 }
@@ -106,22 +132,15 @@ function main() {
 function getFileName(download, fileTime) {
   var fileName = fileTime.format("YYYY-MM-DD_HH-mm-ss");
 
-    // Check if there already exists a file with the same name/timestamp
-    if (names.has(fileName)) {
-      var duplicates = 1;
-      while (names.has(fileName + ` (${duplicates})`)) {
-          duplicates++;
-      }
-      fileName += ` (${duplicates})`;
+  // Check if there already exists a file with the same name/timestamp
+  if (names.has(fileName)) {
+    var duplicates = 1;
+    while (names.has(fileName + ` (${duplicates})`)) {
+      duplicates++;
     }
+    fileName += ` (${duplicates})`;
+  }
   names.add(fileName);
-
-  if (
-    download["Media Type"].toLowerCase() == "image" ||
-    download["Media Type"].toLowerCase() == "photo"
-  )
-    fileName += ".jpg";
-  else if (download["Media Type"].toLowerCase() == "video") fileName += ".mp4";
 
   return fileName;
 }
@@ -172,81 +191,92 @@ const getDownloadLink = (url, body, fileName, fileTime) =>
     getLink(3);
   });
 
-const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "") =>
+const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "", downloadInfo) =>
   new Promise((resolve, reject) => {
     // Check if there already exists a file with the same name
     if (existsSync(outputDir + "/" + fileName)) {
       resolve(true);
+      return;
     }
-    else{
-      // Lambda function for downloading with retries
-      const download = (maxRetries) => {
-        var req = get(downloadUrl, (res) => {
-          if (res.statusCode == 200) {
-            // Create the file and write to it
-            const filepath = path.join(outputDir, fileName);
-            var file = createWriteStream(filepath);
-            res.pipe(file);
-  
-            res.on("end", async () => {
-              file.close();
-              // Update the file creation date
-              utimes(file.path, {
-                btime: fileTime.valueOf(), // birthtime (Windows & Mac)
-                mtime: fileTime.valueOf(), // modified time (Windows, Mac, Linux)
-              });
-  
-              // Update the file location metadata
-              if (options.l) {
-                if (lat && long) {
-                  const exiftool = new Exiftool();
-                  await exiftool.init(filepath);
-  
-                  exiftool.setOverwriteOriginal(true);
-  
-                  const tagsToWrite = [
-                    `-EXIF:DateTimeOriginal=${fileTime.format(
-                      "YYYY-MM-DDTHH:mm:ss"
-                    )}`,
-                    `-EXIF:CreateDate=${fileTime.format("YYYY-MM-DDTHH:mm:ss")}`,
-                    `-EXIF:GPSLatitude=${lat}`,
-                    `-EXIF:GPSLongitude=${long}`,
-                    `-EXIF:GPSLatitudeRef=${parseFloat(lat) > 0 ? "N" : "S"}`,
-                    `-EXIF:GPSLongitudeRef=${parseFloat(long) > 0 ? "E" : "W"}`,
-                  ];
-  
-                  await exiftool.writeMetadataToTag(tagsToWrite);
-                }
-              }
-  
-              resolve(true);
+
+    // Lambda function for downloading with retries
+    const download = (maxRetries) => {
+      var req = get(downloadUrl, async (res) => {
+        if (res.statusCode == 200) {
+          try {
+            // Get the first chunk to detect file type
+            const firstChunk = await new Promise((resolve) => {
+              res.once('data', (chunk) => resolve(chunk));
             });
-          } else {
-            console.log("download error", res.statusCode, res.statusMessage);
+
+            // Detect file type and set path
+            let filepath = path.join(outputDir, fileName);
+            const fileType = await fileTypeFromBuffer(firstChunk);
+            if (fileType) {
+              filepath = path.join(outputDir, fileName + "." + fileType.ext);
+            }
+
+            // Create the file and write to it
+            const file = createWriteStream(filepath);
+            file.write(firstChunk);
+            res.pipe(file);
+
+            // Wait for file to be completely written
+            await new Promise((resolve, reject) => {
+              file.on('finish', async () => {
+                file.close();
+
+                try {
+                  await exiftoolProcess.write(filepath, {
+                    AllDates: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
+                    GPSLatitude: parseFloat(lat),
+                    GPSLongitude: parseFloat(long),
+                    GPSLatitudeRef: parseFloat(lat) > 0 ? "N" : "S",
+                    GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
+                  }, ['-overwrite_original']);
+
+                  // Update file system timestamps
+                  const timestamp = fileTime.valueOf() / 1000;
+                  fs.utimesSync(filepath, timestamp, timestamp);
+                  resolve();
+                } catch (error) {
+                  reject(error);
+                }
+              });
+
+              file.on('error', (error) => reject(error));
+            });
+
+            resolve(true);
+          } catch (error) {
             if (maxRetries > 0) {
               download(maxRetries - 1);
             } else {
-              reject("status error");
+              reject(error);
             }
           }
-        });
-  
-        req.on("error", function () {
-          console.log("request error");
-          req.destroy();
+        } else {
           if (maxRetries > 0) {
             download(maxRetries - 1);
           } else {
-            reject("request error");
+            reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
           }
-        });
-  
-        req.end();
-      };
-      // Download with max retries of 3
-      download(3);
-    }
+        }
+      });
 
+      req.on("error", function (error) {
+        req.destroy();
+        if (maxRetries > 0) {
+          download(maxRetries - 1);
+        } else {
+          reject(error);
+        }
+      });
+
+      req.end();
+    };
+    // Download with max retries of 3
+    download(3);
   });
 
 main();
