@@ -61,7 +61,8 @@ This script will download all your Snapchat memories in bulk, **including the ti
 1. Make sure you get a fresh zip-file before running the script, links will expire over time
 2. `Syntax Compilation Error` -> please have a look at [this](https://github.com/ToTheMax/Snapchat-All-Memories-Downloader/issues/4#issuecomment-664035581) issue
 3. `node-gyp` errors when running `npm install` on Windows -> install [this](https://github.com/nodejs/node-gyp#on-windows)
-4. Still problems? please make a new [issue](https://github.com/ToTheiMax/Snapchat-All-Memories-Downloader/issues) 
+4. If you are missing the `memories_history.json` file, make sure you deselected "Export your Memories, Chat Media and Shared Stories" (first option)
+5. Still problems? please make a new [issue](https://github.com/ToTheiMax/Snapchat-All-Memories-Downloader/issues) 
 
 
 <br>
