@@ -227,13 +227,23 @@ const downloadMemory = (downloadUrl, fileName, fileTime, lat = "", long = "", do
                 file.close();
 
                 try {
-                  await exiftoolProcess.write(filepath, {
-                    AllDates: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
-                    GPSLatitude: parseFloat(lat),
-                    GPSLongitude: parseFloat(long),
-                    GPSLatitudeRef: parseFloat(lat) > 0 ? "N" : "S",
-                    GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
-                  }, ['-overwrite_original']);
+                  //check if gps location is 0,0 (no gps data)
+                  if (parseFloat(lat) == 0 && parseFloat(long) == 0)
+                  {
+                    await exiftoolProcess.write(filepath, {
+                        AllDates: fileTime.format("YYYY-MM-DDTHH:mm:ss")
+                    }, ['-overwrite_original']);
+                  }
+                  else
+                  {
+                    await exiftoolProcess.write(filepath, {
+                        AllDates: fileTime.format("YYYY-MM-DDTHH:mm:ss"),
+                        GPSLatitude: parseFloat(lat),
+                        GPSLongitude: parseFloat(long),
+                        GPSLatitudeRef: parseFloat(lat) > 0 ? "N" : "S",
+                        GPSLongitudeRef: parseFloat(long) > 0 ? "E" : "W"
+                    }, ['-overwrite_original']);
+                  }
 
                   // Update file system timestamps
                   const timestamp = fileTime.valueOf() / 1000;
