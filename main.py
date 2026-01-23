@@ -15,6 +15,7 @@ from tqdm.asyncio import tqdm
 
 class Memory(BaseModel):
     date: datetime = Field(alias="Date")
+    mediaType: str = Field(alias="Media Type")
     download_link: str = Field(alias="Download Link")
     location: str = Field(default="", alias="Location")
     latitude: float | None = None
@@ -95,13 +96,20 @@ def add_exif_data(image_path: Path, memory: Memory):
 
 
 async def download_memory(
-    memory: Memory, output_dir: Path, add_exif: bool, semaphore: asyncio.Semaphore
+    memory: Memory, idx: int, to_download: list[Memory], output_dir: Path, add_exif: bool, semaphore: asyncio.Semaphore
 ) -> tuple[bool, int]:
     async with semaphore:
         try:
             cdn_url = await get_cdn_url(memory.download_link)
-            ext = Path(cdn_url.split("?")[0]).suffix or ".jpg"
-            output_path = output_dir / f"{memory.filename}{ext}"
+            ext = memory.mediaType.lower() == "video" and ".mp4" or ".jpg"
+            if(idx > 0 and to_download[idx-1].date == memory.date):
+                for i in range(2, 30):
+                    if(idx >= i and to_download[idx-i].date == memory.date):
+                        continue
+                    output_path = output_dir / f"{memory.filename}_{i}{ext}"
+                    break
+            else:
+                output_path = output_dir / f"{memory.filename}{ext}"
 
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
                 response = await client.get(cdn_url)
@@ -145,6 +153,8 @@ async def download_all(
     if not to_download:
         print("All files already downloaded!")
         return
+    
+    to_download = list(reversed(to_download))
 
     progress_bar = tqdm(
         total=len(to_download),
@@ -153,9 +163,9 @@ async def download_all(
         disable=False,
     )
 
-    async def process_and_update(memory):
+    async def process_and_update(memory, idx, to_download):
         success, bytes_downloaded = await download_memory(
-            memory, output_dir, add_exif, semaphore
+            memory, idx, to_download, output_dir, add_exif, semaphore
         )
         if success:
             stats.downloaded += 1
@@ -168,7 +178,7 @@ async def download_all(
         progress_bar.set_postfix({"MB/s": f"{mb_per_sec:.2f}"}, refresh=False)
         progress_bar.update(1)
 
-    await asyncio.gather(*[process_and_update(m) for m in to_download])
+    await asyncio.gather(*[process_and_update(m, idx, to_download) for (idx, m) in enumerate(to_download)])
 
     progress_bar.close()
     elapsed = time.time() - start_time
