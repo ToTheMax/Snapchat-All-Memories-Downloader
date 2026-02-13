@@ -1,12 +1,27 @@
 [project]
-name = "python"
-version = "0.1.0"
-description = "Add your description here"
+name = "snapchat-all-memories-downloader"
+version = "1.0.0"
+description = "Download all your Snapchat memories with timestamps, geolocation, and overlays"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    {name = "Contributors", email = ""}
+]
+keywords = ["snapchat", "memories", "downloader", "geolocation"]
+classifiers = [
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Video",
+    "Topic :: Utilities"
+]
 dependencies = [
-    "exif>=1.6.1",
     "httpx>=0.28.1",
-    "pydantic>=2.12.0",
+    "piexif>=1.1.3",
+    "Pillow>=12.0.0",
+    "pydantic>=2.12.3",
     "tqdm>=4.67.1",
+    "timezonefinder",
+    "pytz",
+    "numpy"
 ]
