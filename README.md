@@ -6,7 +6,7 @@ This script will download all your Snapchat memories in bulk, **including the ti
 
 ## Getting your Data
 - Login to Snapchat: https://accounts.snapchat.com/
-- Request your data: https://accounts.snapchat.com/accounts/downloadmydata
+- Request your data: https://accounts.snapchat.com/accounts/@sonia.papi/downloadmydata
 - Select the `Export your Memories` and `Export JSON Files` option and continue
 
 ![export configuration](https://github.com/user-attachments/assets/dfcdb6a0-e554-46e8-bdba-77fe41c88a03)
